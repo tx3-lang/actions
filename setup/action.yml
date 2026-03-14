@@ -1,0 +1,146 @@
+name: "Setup tx3 Toolchain"
+description: "Install the tx3 toolchain using tx3up"
+branding:
+  icon: "download"
+  color: "blue"
+
+inputs:
+  channel:
+    description: "Toolchain channel to install (stable, nightly, beta)"
+    required: false
+    default: "stable"
+  version:
+    description: "Specific toolchain release tag to install (e.g. '2025.03.01'). If not set, installs the latest for the channel."
+    required: false
+    default: ""
+  github-token:
+    description: "GitHub token for API requests (avoids rate limits)"
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  tx3-version:
+    description: "The installed tx3c compiler version"
+    value: ${{ steps.version.outputs.tx3-version }}
+  bin-path:
+    description: "Path to the installed toolchain binaries"
+    value: ${{ steps.setup.outputs.bin-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Determine platform
+      id: platform
+      shell: bash
+      run: |
+        ARCH=$(uname -m)
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+        case "$ARCH" in
+          x86_64)  ARCH="x86_64" ;;
+          aarch64|arm64) ARCH="aarch64" ;;
+          *) echo "::error::Unsupported architecture: $ARCH"; exit 1 ;;
+        esac
+
+        case "$OS" in
+          linux)  TARGET="${ARCH}-unknown-linux-gnu" ;;
+          darwin) TARGET="${ARCH}-apple-darwin" ;;
+          *) echo "::error::Unsupported OS: $OS"; exit 1 ;;
+        esac
+
+        echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+        echo "Detected platform: $TARGET"
+
+    - name: Download and install tx3up
+      id: setup
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        set -euo pipefail
+
+        TARGET="${{ steps.platform.outputs.target }}"
+        TX3_ROOT="$HOME/.tx3"
+        CHANNEL="${{ inputs.channel }}"
+
+        echo "Installing tx3up for $TARGET..."
+
+        # Find the latest tx3up release
+        RELEASE_JSON=$(gh api repos/tx3-lang/up/releases/latest 2>/dev/null || true)
+
+        if [ -z "$RELEASE_JSON" ]; then
+          echo "::error::Failed to fetch tx3up release information"
+          exit 1
+        fi
+
+        # Find the asset matching our platform
+        ASSET_URL=$(echo "$RELEASE_JSON" | jq -r ".assets[] | select(.name | contains(\"tx3up-$TARGET\")) | .browser_download_url" | head -1)
+
+        if [ -z "$ASSET_URL" ] || [ "$ASSET_URL" = "null" ]; then
+          echo "::error::No tx3up binary found for platform $TARGET"
+          exit 1
+        fi
+
+        echo "Downloading tx3up from: $ASSET_URL"
+
+        # Download and extract tx3up
+        TEMP_DIR=$(mktemp -d)
+        ARCHIVE_PATH="$TEMP_DIR/tx3up.tar.gz"
+        curl -fsSL "$ASSET_URL" -o "$ARCHIVE_PATH"
+
+        # Determine archive type and extract
+        if echo "$ASSET_URL" | grep -q '\.tar\.xz'; then
+          tar -xJf "$ARCHIVE_PATH" -C "$TEMP_DIR"
+        else
+          tar -xzf "$ARCHIVE_PATH" -C "$TEMP_DIR"
+        fi
+
+        # Find the tx3up binary in extracted files
+        TX3UP_BIN=$(find "$TEMP_DIR" -name "tx3up" -type f | head -1)
+
+        if [ -z "$TX3UP_BIN" ]; then
+          echo "::error::tx3up binary not found in archive"
+          exit 1
+        fi
+
+        chmod +x "$TX3UP_BIN"
+
+        # Run tx3up to install the toolchain
+        export TX3_ROOT
+        export TX3_CHANNEL="$CHANNEL"
+
+        INSTALL_ARGS=""
+        if [ -n "${{ inputs.version }}" ]; then
+          INSTALL_ARGS="--release ${{ inputs.version }}"
+        fi
+
+        echo "Running tx3up install (channel: $CHANNEL)..."
+        "$TX3UP_BIN" install $INSTALL_ARGS
+
+        # Clean up temp dir
+        rm -rf "$TEMP_DIR"
+
+        # Set up PATH for subsequent steps
+        BIN_PATH="$TX3_ROOT/default/bin"
+        echo "$BIN_PATH" >> "$GITHUB_PATH"
+        echo "bin-path=$BIN_PATH" >> "$GITHUB_OUTPUT"
+
+        echo "Toolchain installed to $BIN_PATH"
+
+    - name: Verify installation
+      id: version
+      shell: bash
+      run: |
+        echo "Installed tools:"
+
+        if command -v tx3c &>/dev/null; then
+          TX3_VERSION=$(tx3c --version 2>/dev/null || echo "unknown")
+          echo "  tx3c: $TX3_VERSION"
+          echo "tx3-version=$TX3_VERSION" >> "$GITHUB_OUTPUT"
+        fi
+
+        if command -v trix &>/dev/null; then
+          echo "  trix: $(trix --version 2>/dev/null || echo 'unknown')"
+        fi
+
+        ls -la "$HOME/.tx3/default/bin/" 2>/dev/null || true
