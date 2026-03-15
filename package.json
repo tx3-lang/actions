@@ -1,0 +1,20 @@
+{
+  "name": "tx3-actions",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GitHub Actions for the tx3 toolchain",
+  "scripts": {
+    "build": "tsc && ncc build setup/lib/main.js -o setup/dist"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/io": "^1.1.3",
+    "@actions/tool-cache": "^2.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@vercel/ncc": "^0.38.3",
+    "typescript": "^5.3.3"
+  }
+}

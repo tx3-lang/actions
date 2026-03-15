@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Verify dist/ is up to date
+        run: |
+          if [ -n "$(git diff --name-only setup/dist/)" ]; then
+            echo "::error::setup/dist/ is out of date. Run 'npm run build' and commit the result."
+            git diff --stat setup/dist/
+            exit 1
+          fi
+
+  test:
+    needs: build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run setup action
+        id: setup
+        uses: ./setup
+
+      - name: Verify tx3c is available
+        run: |
+          which tx3c
+          tx3c --version
+
+      - name: Verify trix is available
+        run: |
+          which trix
+          trix --version
+
+      - name: Check outputs
+        run: |
+          echo "tx3-version: ${{ steps.setup.outputs.tx3-version }}"
+          echo "bin-path: ${{ steps.setup.outputs.bin-path }}"
+          test -n "${{ steps.setup.outputs.bin-path }}"
