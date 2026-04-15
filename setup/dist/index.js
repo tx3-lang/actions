@@ -28309,7 +28309,7 @@ async function runTx3upInstall(tx3upDir, channel, version) {
         env["GITHUB_TOKEN"] = token;
     }
     await exec.exec(tx3upBin, args, { env });
-    const binPath = path.join(tx3Root, "default", "bin");
+    const binPath = path.join(tx3Root, channel, "bin");
     return binPath;
 }
 //# sourceMappingURL=installer.js.map
