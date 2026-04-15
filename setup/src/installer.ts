@@ -103,13 +103,19 @@ export async function runTx3upInstall(
     `Running tx3up install (channel: ${channel}${version ? `, version: ${version}` : ""})...`
   );
 
-  await exec.exec(tx3upBin, args, {
-    env: {
-      ...process.env,
-      TX3_ROOT: tx3Root,
-      TX3_CHANNEL: channel,
-    },
-  });
+  const env: Record<string, string> = {
+    ...process.env as Record<string, string>,
+    TX3_ROOT: tx3Root,
+    TX3_CHANNEL: channel,
+  };
+
+  // Pass GitHub token so tx3up can make authenticated API requests
+  const token = process.env.GITHUB_TOKEN || "";
+  if (token) {
+    env["GITHUB_TOKEN"] = token;
+  }
+
+  await exec.exec(tx3upBin, args, { env });
 
   const binPath = path.join(tx3Root, "default", "bin");
   return binPath;

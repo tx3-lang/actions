@@ -22,6 +22,11 @@ async function run(): Promise<void> {
 
     const tx3upDir = await downloadAndCacheTx3up(url, tx3upVersion, target);
 
+    // Export token so tx3up can make authenticated GitHub API requests
+    if (token) {
+      core.exportVariable("GITHUB_TOKEN", token);
+    }
+
     const binPath = await runTx3upInstall(tx3upDir, channel, version);
 
     core.addPath(binPath);

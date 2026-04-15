@@ -28298,13 +28298,17 @@ async function runTx3upInstall(tx3upDir, channel, version) {
         args.push("--release", version);
     }
     core.info(`Running tx3up install (channel: ${channel}${version ? `, version: ${version}` : ""})...`);
-    await exec.exec(tx3upBin, args, {
-        env: {
-            ...process.env,
-            TX3_ROOT: tx3Root,
-            TX3_CHANNEL: channel,
-        },
-    });
+    const env = {
+        ...process.env,
+        TX3_ROOT: tx3Root,
+        TX3_CHANNEL: channel,
+    };
+    // Pass GitHub token so tx3up can make authenticated API requests
+    const token = process.env.GITHUB_TOKEN || "";
+    if (token) {
+        env["GITHUB_TOKEN"] = token;
+    }
+    await exec.exec(tx3upBin, args, { env });
     const binPath = path.join(tx3Root, "default", "bin");
     return binPath;
 }
@@ -28363,6 +28367,10 @@ async function run() {
         const target = (0, platform_1.getTarget)();
         const { url, version: tx3upVersion } = await (0, installer_1.getTx3upDownloadUrl)(target, token);
         const tx3upDir = await (0, installer_1.downloadAndCacheTx3up)(url, tx3upVersion, target);
+        // Export token so tx3up can make authenticated GitHub API requests
+        if (token) {
+            core.exportVariable("GITHUB_TOKEN", token);
+        }
         const binPath = await (0, installer_1.runTx3upInstall)(tx3upDir, channel, version);
         core.addPath(binPath);
         core.setOutput("bin-path", binPath);
