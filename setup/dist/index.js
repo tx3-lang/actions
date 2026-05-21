@@ -28251,7 +28251,7 @@ async function getTx3upDownloadUrl(target, token) {
     if (token) {
         headers["Authorization"] = `token ${token}`;
     }
-    const response = await fetch("https://api.github.com/repos/tx3-lang/up/releases/latest", { headers });
+    const response = await fetch("https://api.github.com/repos/tx3-lang/tx3up/releases/latest", { headers });
     if (!response.ok) {
         throw new Error(`Failed to fetch tx3up release: ${response.status} ${response.statusText}`);
     }

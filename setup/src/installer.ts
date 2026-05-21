@@ -27,7 +27,7 @@ export async function getTx3upDownloadUrl(
   }
 
   const response = await fetch(
-    "https://api.github.com/repos/tx3-lang/up/releases/latest",
+    "https://api.github.com/repos/tx3-lang/tx3up/releases/latest",
     { headers }
   );
 
