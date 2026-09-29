@@ -1,0 +1,26 @@
+/// Address that sends the ADA, pays the network fee and receives the change.
+party Sender;
+
+/// Address that receives the ADA.
+party Receiver;
+
+/// Send ADA from the sender to the receiver; the sender pays the fee and gets the change back.
+tx transfer(
+    /// Amount to send, in lovelace; 1 ADA = 1,000,000 lovelace.
+    quantity: Int
+) {
+    input source {
+        from: Sender,
+        min_amount: Ada(quantity) + fees,
+    }
+
+    output payment {
+        to: Receiver,
+        amount: Ada(quantity),
+    }
+
+    output change {
+        to: Sender,
+        amount: source - Ada(quantity) - fees,
+    }
+}

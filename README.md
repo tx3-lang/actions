@@ -17,15 +17,19 @@ Install the tx3 toolchain in your GitHub Actions workflow.
 | Input          | Description                                      | Default         |
 |----------------|--------------------------------------------------|-----------------|
 | `channel`      | Toolchain channel (`stable`, `nightly`, `beta`)  | `stable`        |
-| `version`      | Specific toolchain release tag                   | latest          |
+| `version`      | Specific [toolchain release](https://github.com/tx3-lang/toolchain/releases) tag | latest          |
 | `github-token` | GitHub token for API requests                    | `github.token`  |
 
 #### Outputs
 
-| Output        | Description                              |
-|---------------|------------------------------------------|
-| `tx3-version` | The installed tx3c compiler version      |
-| `bin-path`    | Path to the installed toolchain binaries |
+| Output         | Description                                   |
+|----------------|-----------------------------------------------|
+| `tx3-version`  | The installed tx3c version (e.g. `0.25.0`)    |
+| `trix-version` | The installed trix version (e.g. `0.28.0`)    |
+| `bin-path`     | Path to the installed toolchain binaries      |
+
+The installed channel becomes the default toolchain, so `trix` finds `tx3c`
+and the other tools it runs.
 
 #### Examples
 
@@ -55,5 +59,5 @@ steps:
   - uses: actions/checkout@v4
   - uses: tx3-lang/actions/setup@v1
     with:
-      version: "2025.03.01"
+      version: "sha-3f2296a"
 ```

@@ -28309,6 +28309,9 @@ async function runTx3upInstall(tx3upDir, channel, version) {
         env["GITHUB_TOKEN"] = token;
     }
     await exec.exec(tx3upBin, args, { env });
+    // With a channel set, tx3up leaves `~/.tx3/default` unlinked; trix resolves
+    // tx3c, dolos and cshell through that link, so make the channel the default.
+    await exec.exec(tx3upBin, ["use", channel], { env });
     const binPath = path.join(tx3Root, channel, "bin");
     return binPath;
 }
@@ -28359,6 +28362,23 @@ const core = __importStar(__nccwpck_require__(7484));
 const exec = __importStar(__nccwpck_require__(5236));
 const platform_1 = __nccwpck_require__(5223);
 const installer_1 = __nccwpck_require__(2218);
+// Reads the bare version from a tool's `<name> <version>` banner.
+async function toolVersion(tool, binPath) {
+    try {
+        const { stdout } = await exec.getExecOutput(tool, ["--version"], {
+            env: {
+                ...process.env,
+                PATH: `${binPath}:${process.env.PATH}`,
+            },
+            silent: true,
+        });
+        return stdout.trim().split(/\s+/).pop() ?? "";
+    }
+    catch {
+        core.warning(`Could not determine ${tool} version`);
+        return "";
+    }
+}
 async function run() {
     try {
         const channel = core.getInput("channel") || "stable";
@@ -28374,30 +28394,14 @@ async function run() {
         const binPath = await (0, installer_1.runTx3upInstall)(tx3upDir, channel, version);
         core.addPath(binPath);
         core.setOutput("bin-path", binPath);
-        // Get installed version
-        let tx3Version = "";
-        try {
-            let output = "";
-            await exec.exec("tx3c", ["--version"], {
-                env: {
-                    ...process.env,
-                    PATH: `${binPath}:${process.env.PATH}`,
-                },
-                listeners: {
-                    stdout: (data) => {
-                        output += data.toString();
-                    },
-                },
-            });
-            tx3Version = output.trim();
-        }
-        catch {
-            core.warning("Could not determine tx3c version");
-        }
+        const tx3Version = await toolVersion("tx3c", binPath);
+        const trixVersion = await toolVersion("trix", binPath);
         core.setOutput("tx3-version", tx3Version);
+        core.setOutput("trix-version", trixVersion);
         core.info(`tx3 toolchain installed successfully`);
         core.info(`  bin-path: ${binPath}`);
         core.info(`  tx3-version: ${tx3Version}`);
+        core.info(`  trix-version: ${trixVersion}`);
     }
     catch (error) {
         if (error instanceof Error) {

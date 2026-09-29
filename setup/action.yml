@@ -10,7 +10,7 @@ inputs:
     required: false
     default: "stable"
   version:
-    description: "Specific toolchain release tag to install (e.g. '2025.03.01'). If not set, installs the latest for the channel."
+    description: "Specific toolchain release tag to install (e.g. 'sha-3f2296a'). If not set, installs the latest for the channel."
     required: false
     default: ""
   github-token:
@@ -20,7 +20,9 @@ inputs:
 
 outputs:
   tx3-version:
-    description: "The installed tx3c compiler version"
+    description: "The installed tx3c compiler version (e.g. '0.25.0')"
+  trix-version:
+    description: "The installed trix version (e.g. '0.28.0')"
   bin-path:
     description: "Path to the installed toolchain binaries"
 

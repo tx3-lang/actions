@@ -7,6 +7,23 @@ import {
   runTx3upInstall,
 } from "./installer";
 
+// Reads the bare version from a tool's `<name> <version>` banner.
+async function toolVersion(tool: string, binPath: string): Promise<string> {
+  try {
+    const { stdout } = await exec.getExecOutput(tool, ["--version"], {
+      env: {
+        ...process.env,
+        PATH: `${binPath}:${process.env.PATH}`,
+      },
+      silent: true,
+    });
+    return stdout.trim().split(/\s+/).pop() ?? "";
+  } catch {
+    core.warning(`Could not determine ${tool} version`);
+    return "";
+  }
+}
+
 async function run(): Promise<void> {
   try {
     const channel = core.getInput("channel") || "stable";
@@ -32,30 +49,15 @@ async function run(): Promise<void> {
     core.addPath(binPath);
     core.setOutput("bin-path", binPath);
 
-    // Get installed version
-    let tx3Version = "";
-    try {
-      let output = "";
-      await exec.exec("tx3c", ["--version"], {
-        env: {
-          ...process.env,
-          PATH: `${binPath}:${process.env.PATH}`,
-        },
-        listeners: {
-          stdout: (data: Buffer) => {
-            output += data.toString();
-          },
-        },
-      });
-      tx3Version = output.trim();
-    } catch {
-      core.warning("Could not determine tx3c version");
-    }
+    const tx3Version = await toolVersion("tx3c", binPath);
+    const trixVersion = await toolVersion("trix", binPath);
 
     core.setOutput("tx3-version", tx3Version);
+    core.setOutput("trix-version", trixVersion);
     core.info(`tx3 toolchain installed successfully`);
     core.info(`  bin-path: ${binPath}`);
     core.info(`  tx3-version: ${tx3Version}`);
+    core.info(`  trix-version: ${trixVersion}`);
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(error.message);

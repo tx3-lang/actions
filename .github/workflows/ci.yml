@@ -54,8 +54,15 @@ jobs:
       - name: Check outputs
         run: |
           echo "tx3-version: ${{ steps.setup.outputs.tx3-version }}"
+          echo "trix-version: ${{ steps.setup.outputs.trix-version }}"
           echo "bin-path: ${{ steps.setup.outputs.bin-path }}"
+          test -n "${{ steps.setup.outputs.tx3-version }}"
+          test -n "${{ steps.setup.outputs.trix-version }}"
           test -n "${{ steps.setup.outputs.bin-path }}"
+
+      - name: Check a protocol with trix
+        working-directory: .github/fixtures/transfer
+        run: trix check
 
   test-channel:
     needs: build
