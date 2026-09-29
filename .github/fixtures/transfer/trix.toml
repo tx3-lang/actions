@@ -1,0 +1,8 @@
+[protocol]
+scope = "tx3-lang"
+name = "transfer"
+version = "0.0.0"
+main = "main.tx3"
+
+[ledger]
+family = "cardano"

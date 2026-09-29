@@ -117,6 +117,10 @@ export async function runTx3upInstall(
 
   await exec.exec(tx3upBin, args, { env });
 
+  // With a channel set, tx3up leaves `~/.tx3/default` unlinked; trix resolves
+  // tx3c, dolos and cshell through that link, so make the channel the default.
+  await exec.exec(tx3upBin, ["use", channel], { env });
+
   const binPath = path.join(tx3Root, channel, "bin");
   return binPath;
 }
